@@ -1,10 +1,14 @@
 package com.sky.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sky.interceptor.JwtTokenAdminInterceptor;
+import com.sky.json.JacksonObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -14,6 +18,8 @@ import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
+
+import java.util.List;
 
 /**
  * 配置类，注册web层相关组件
@@ -66,5 +72,25 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
         log.info("开始设置静态资源映射");
         registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
         registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+    }
+
+    /**
+     * 扩展Spring MVC 框架的消息转化器
+     * @param converters
+     */
+    protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
+        log.info("扩展消息转换器...");
+        // 创建一个消息转换器对象
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+
+        // 需要为消息转换器设置一个对象转换器，把
+        // 自定义对象转换器：sky-common/src/main/java/com/sky/json/JacksonObjectMapper.java
+        // 对象转换器目的：将 Java对象 序列化为 json数据
+        converter.setObjectMapper(new JacksonObjectMapper()) ;
+
+        // converters：整个 Spring MVC框架 所使用的消息转换器都存放在 converters 这个集合中
+        // 将自己的消息转换器也加入到 converters集合 中，默认是加入到集合的最后面。
+        // 如果是在最后面的话、默认是使用不到的。所以需要设置优先级为0，排在第一位
+        converters.add(0,converter);
     }
 }
